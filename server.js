@@ -5,7 +5,7 @@ const bodyParser = require('body-parser')
 const sqlite3 = require('sqlite3').verbose();
 const port = 3000
 
-const db_name = path.join(__dirname, "bead.db")
+const db_name = path.join(__dirname, "bread.db")
 const db = new sqlite3.Database(db_name, err => {
     if (err) {
         return console.error(err.message)
@@ -21,9 +21,31 @@ app.set('view engine', 'ejs')
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
-app.get('/', (req, res) => res.render('index'))
+app.get('/', (req, res) => {
+    let sql = 'SELECT * FROM bread'
 
-app.get('/add', (req, res) => res.render('add'))
+    db.all(sql, (err, rows) => {
+
+        if (err) {
+            return res.send(err);
+        } else if (rows == 0) {
+            return res.send('data can not be found');
+        } else {
+            let data = [];
+            rows.forEach(row => {
+                data.push(row);
+            });
+            // console.log(data)
+            res.render('index', { data })
+
+        }
+    })
+})
+
+app.get('/add', (req, res) => {
+    res.render('add');
+})
+
 
 
 

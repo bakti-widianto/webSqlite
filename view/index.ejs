@@ -24,14 +24,14 @@
                 </tr>
             </thead>
             <tbody>
-                
+                <% data.forEach(item => {%>
                 <tr>
-                    <td>1</td>
-                    <td>test</td>
-                    <td>123</td>
-                    <td>321</td>
-                    <td>151298</td>
-                    <td>true</td>
+                    <td><%=item.id%></td>
+                    <td><%=item.string%></td>
+                    <td><%=item.integer%></td>
+                    <td><%=item.float%></td>
+                    <td><%=item.date%></td>
+                    <td><%=item.boolean%></td>
                     <td>
                         <a href="/edit">
                             <button type="button" class="btn btn-success">Edit</button>
@@ -41,7 +41,7 @@
                         </a>
                     </td>
                 </tr>
-                
+                <% }) %>
             </tbody>
         </table>
         <a href="/add">
