@@ -1,7 +1,9 @@
 const express = require('express')
 const path = require('path')
 const app = express()
-const bodyParser = require('body-parser')
+const bodyParser = require('body-parser');
+const { query } = require('express');
+const { Console } = require('console');
 const sqlite3 = require('sqlite3').verbose();
 const port = 3000
 
@@ -31,49 +33,73 @@ app.get('/', (req, res) => {
     }
 
     if (req.query.checkString && req.query.string) {
-        dataSearch.push(`string = ${req.query.string}`)
+        dataSearch.push(`string = "${req.query.string}"`)
         search = true
     }
-    
+
     if (req.query.checkInteger && req.query.integer) {
-        dataSearch.push(`integer = ${req.query.integer}`)
+        dataSearch.push(`integer = "${req.query.integer}"`)
         search = true
     }
 
     if (req.query.checkFloat && req.query.float) {
-        dataSearch.push(`float = ${req.query.float}`)
+        dataSearch.push(`float = "${req.query.float}"`)
         search = true
     }
 
     if (req.query.checkDate && req.query.startDate && req.query.endDate) {
-        dataSearch.push(`date BETWEEN '${req.query.startDate}' AND '${req.query.endDate}`)
+        dataSearch.push(`date BETWEEN '${req.query.startDate}' AND '${req.query.endDate}'`)
         search = true
     }
 
     if (req.query.checkBoolean && req.query.boolean) {
-        dataSearch.push(`boolean = ${req.query.boolean}`)
+        dataSearch.push(`boolean = "${req.query.boolean}"`)
         search = true
     }
-    
 
-    console.log(dataSearch)
+    let searchFinal = ""
+    if (search) {
+        searchFinal += `WHERE ${dataSearch.join(' AND ')}`
+    }
+    // console.log('hasil = ', searchFinal)
 
-    let sql = 'SELECT * FROM bread'
 
-    db.all(sql, (err, rows) => {
+    const page = req.query.page || 1
+    const limit = 4
+    const offset = (page - 1) * limit
 
+
+    db.all(`SELECT COUNT (id) as total FROM bread`, (err, rows) => {
         if (err) {
             return console.error(err.message)
         } else if (rows == 0) {
-            return res.send('data can not be found');
+            return res.send('data tidak di temukan')
         } else {
-            let data = [];
-            rows.forEach(row => {
-                data.push(row);
-            });
-            // console.log(data)
-            res.render('index', { data })
+            total = rows[0].total
+            const pages = Math.ceil(total / limit)
+            
+            
+            // console.log(pages)
+            // console.log(searchFinal)
 
+
+            let sql = `SELECT * FROM bread ${searchFinal} LIMIT ? OFFSET ?`
+            db.all(sql, [limit,offset], (err, rows) => {
+
+                if (err) {
+                    return console.error(err.message)
+                } else if (rows == 0) {
+                    return res.send('data can not be found');
+                } else {
+                    let data = [];
+                    rows.forEach(row => {
+                        data.push(row);
+                    });
+                    // console.log(data)
+                    res.render('index', { data, page, pages })
+
+                }
+            })
         }
     })
 })
@@ -85,7 +111,7 @@ app.get('/add', (req, res) => {
 app.post('/add', (req, res) => {
     let hasil = req.body;
     db.serialize(() => {
-        let sql = ('INSERT INTO bread (string, integer, float, date, boolean) VALUES(?,?,?,?,?)')
+        let sql = (`INSERT INTO bread (string, integer, float, date, boolean) VALUES(?,?,?,?,?)`)
         db.run(sql, [hasil.string, hasil.integer, hasil.float, hasil.date, hasil.boolean], (err) => {
             if (err) {
                 return console.error(err.message)
@@ -98,7 +124,7 @@ app.post('/add', (req, res) => {
 
 app.get('/delete/:id', (req, res) => {
     let id = req.params.id;
-    let sql = 'DELETE FROM bread WHERE id = ?'
+    let sql = `DELETE FROM bread WHERE id = ?`
     db.run(sql, id, (err) => {
         if (err) {
             return console.error(err.message)
@@ -109,7 +135,7 @@ app.get('/delete/:id', (req, res) => {
 
 app.get('/edit/:id', (req, res) => {
     let id = req.params.id
-    let sql = 'SELECT * FROM bread WHERE id = ?'
+    let sql = `SELECT * FROM bread WHERE id = ?`
     db.get(sql, id, (err, row) => {
         if (err) {
             return console.error(err.message)
@@ -121,7 +147,7 @@ app.get('/edit/:id', (req, res) => {
 app.post('/edit/:id', (req, res) => {
     let id = req.params.id
     let edit = [req.body.string, req.body.integer, req.body.float, req.body.date, req.body.boolean, id]
-    let sql = 'UPDATE bread SET string = ? , integer = ? , float = ? , date = ? , boolean = ? WHERE id = ?'
+    let sql = `UPDATE bread SET string = ? , integer = ? , float = ? , date = ? , boolean = ? WHERE id = ?`
 
     db.run(sql, edit, (err) => {
         if (err) {
